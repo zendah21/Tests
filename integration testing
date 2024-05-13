@@ -1,0 +1,81 @@
+import unittest
+import base64
+import json
+from main import app
+
+class TestIntegration(unittest.TestCase):
+
+    def setUp(self):
+        self.tester = app.test_client(self)
+
+    def test_index_route(self):
+        print("\nTesting index route")
+        # Test the index route
+        response = self.tester.get('/')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        print("Input: N/A")
+        print("Expected output: {'result': 'Welcome to the server'}")
+        print("Actual output:", data)
+        self.assertIn('result', data)
+        self.assertEqual(data['result'], 'Welcome to the server')
+
+    def test_get_disease_info_route(self):
+        print("\nTesting get_disease_info route with a valid image")
+        # Test the /get_disease_info route with a valid image
+        with open('test_image.jpg', 'rb') as img_file:
+            encoded_image = base64.b64encode(img_file.read()).decode()
+        json_data = {'image': encoded_image}
+        response = self.tester.post('/get_disease_info', json=json_data)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        print("Input: {'image': <base64_encoded_image>}")
+        print("Expected output: {'result': <result>} (depends on prediction)")
+        print("Actual output:", data)
+        self.assertIn('result', data)
+
+    def test_get_disease_info_route_no_image(self):
+        print("\nTesting get_disease_info route without an image")
+        # Test the /get_disease_info route without an image
+        json_data = {}
+        response = self.tester.post('/get_disease_info', json=json_data)
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        print("Input: {'image': None}")
+        print("Expected output: {'error': 'Empty Json file'}")
+        print("Actual output:", data)
+        self.assertIn('error', data)
+
+    def test_invalid_route(self):
+        print("\nTesting invalid route")
+        # Test an invalid route
+        response = self.tester.get('/invalid_route')
+        self.assertEqual(response.status_code, 404)
+        print("Input: N/A")
+        print("Expected output: 404")
+        print("Actual output:", response.status_code)
+
+    def test_invalid_method(self):
+        print("\nTesting invalid HTTP method")
+        # Test an invalid HTTP method for a route
+        response = self.tester.post('/')
+        self.assertEqual(response.status_code, 405)
+        print("Input: POST request to '/' route")
+        print("Expected output: 405")
+        print("Actual output:", response.status_code)
+
+    def test_invalid_image_format(self):
+        print("\nTesting invalid image format")
+        # Test the /get_disease_info route with an invalid image format
+        invalid_image = base64.b64encode(b'invalid_image_data').decode()
+        json_data = {'image': invalid_image}
+        response = self.tester.post('/get_disease_info', json=json_data)
+        self.assertEqual(response.status_code, 500)  # Assuming 401 for invalid base64-encoded image data
+        data = json.loads(response.data)
+        print("Input: {'image': <invalid_base64_encoded_image>}")
+        print("Expected output: {'error': 'Invalid base64-encoded image data'}")
+        print("Actual output:", data)
+        self.assertIn('error', data)
+
+if __name__ == '__main__':
+    unittest.main()
