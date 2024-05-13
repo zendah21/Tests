@@ -1,0 +1,95 @@
+import unittest
+import base64
+import cv2
+from main import preprocess_and_extract_features, calculate_lbp_features, predict, predict_multiclass, get_plant_and_disease, get_disease_info
+
+class TestApp(unittest.TestCase):
+
+    def test_preprocess_and_extract_features(self):
+        print("\nTesting preprocess_and_extract_features function")
+        # Test preprocess_and_extract_features function
+        with open('test_image.jpg', 'rb') as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode()
+        print("Input (encoded image):", encoded_image[:50], "...")
+        features = preprocess_and_extract_features(encoded_image)
+        print("Output (features):", features)
+        self.assertIsNotNone(features)
+
+    def test_calculate_lbp_features(self):
+        print("\nTesting calculate_lbp_features function")
+        # Test calculate_lbp_features function
+        test_image = cv2.imread('test_image.jpg', cv2.IMREAD_GRAYSCALE)
+        print("Input (test image shape):", test_image.shape)
+        features = calculate_lbp_features(test_image)
+        print("Output (features length):", len(features))
+        self.assertIsNotNone(features)
+        self.assertEqual(len(features), test_image.shape[0] * test_image.shape[1])
+
+    def test_predict(self):
+        print("\nTesting predict function")
+        # Test predict function with invalid features (image loading error)
+        prediction = predict(None)
+        print("Expected output (error message): 'Error processing image: Failed to load image'")
+        print("Actual output (error message):", prediction)
+        self.assertIsNone(prediction)
+
+    def test_predict_multiclass(self):
+        print("\nTesting predict_multiclass function")
+        # Test predict_multiclass function with invalid features (image loading error)
+        prediction = predict_multiclass(None)
+        print("Expected output (error message): 'Error processing image: Failed to load image'")
+        print("Actual output (error message):", prediction)
+        self.assertIsNone(prediction)
+
+    def test_get_plant_and_disease(self):
+        print("\nTesting get_plant_and_disease function")
+        # Test get_plant_and_disease function
+        prediction = 'Apple___Black_rot'
+        print("Input (prediction):", prediction)
+        plant, disease = get_plant_and_disease(prediction)
+        print("Expected output (plant, disease): ('Apple', 'Black rot')")
+        print("Actual output (plant, disease):", (plant, disease))
+        self.assertEqual(plant, 'Apple')
+        self.assertEqual(disease, 'Black rot')
+
+    def test_get_disease_info(self):
+        print("\nTesting get_disease_info function")
+        # Test get_disease_info function with a valid disease
+        plant = 'Apple'
+        disease = 'Black rot'
+        print("Input (plant, disease):", plant, ",", disease)
+        disease_info = get_disease_info(plant, disease)
+        expected_keys = ['disease_name', 'plant_name', 'symptoms', 'treatment']
+        actual_keys = list(disease_info.keys())
+        print("Expected output (dictionary keys):", expected_keys)
+        print("Actual output (dictionary keys):", actual_keys)
+        self.assertIsInstance(disease_info, dict)
+        for key in expected_keys:
+            self.assertIn(key, actual_keys)
+
+    def test_get_disease_info_invalid_disease(self):
+        print("\nTesting get_disease_info function with invalid disease")
+        # Test get_disease_info function with invalid disease
+        plant = 'Apple'
+        disease = 'Invalid_disease'
+        print("Input (plant, disease):", plant, ",", disease)
+        disease_info = get_disease_info(plant, disease)
+        print("Expected output (error message key): 'error'")
+        print("Actual output (error message key):", list(disease_info.keys()))
+        self.assertIsInstance(disease_info, dict)
+        self.assertIn('error', disease_info)
+
+    def test_get_disease_info_invalid_plant(self):
+        print("\nTesting get_disease_info function with invalid plant")
+        # Test get_disease_info function with invalid plant
+        plant = 'Invalid_plant'
+        disease = 'Black rot'
+        print("Input (plant, disease):", plant, ",", disease)
+        disease_info = get_disease_info(plant, disease)
+        print("Expected output (error message key): 'error'")
+        print("Actual output (error message key):", list(disease_info.keys()))
+        self.assertIsInstance(disease_info, dict)
+        self.assertIn('error', disease_info)
+
+if __name__ == '__main__':
+    unittest.main()
