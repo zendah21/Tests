@@ -1,0 +1,95 @@
+import json
+import unittest
+import base64
+import requests
+
+class TestSystem(unittest.TestCase):
+
+    def test_index_route(self):
+        print("\nTesting Index Route")
+        # Test the index route
+        response = requests.get('http://localhost:5000/')
+        data = response.json()
+        print("Input: N/A")
+        print("Expected Output: {'result': 'Welcome to the server'}")
+        print("Actual Output:", data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('result', data)
+        self.assertEqual(data['result'], 'Welcome to the server')
+
+    def test_get_disease_info_route(self):
+        print("\nTesting Get Disease Info Route")
+        # Test the /get_disease_info route with a valid image
+        with open('test_image.jpg', 'rb') as img_file:
+            encoded_image = base64.b64encode(img_file.read()).decode()
+        json_data = {'image': encoded_image}
+        response = requests.post('http://localhost:5000/get_disease_info', json=json_data)
+        data = response.json()
+        print("Input:", json_data)
+        print("Expected Output: {'result': <disease_info>} (depends on prediction)")
+        print("Actual Output:", data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('result', data)
+
+    def test_invalid_image_format(self):
+        print("\nTesting Invalid Image Format")
+        # Test the /get_disease_info route with an invalid image format
+        invalid_image = base64.b64encode(b'invalid_image_data').decode()
+        json_data = {'image': invalid_image}
+        response = requests.post('http://localhost:5000/get_disease_info', json=json_data)
+        data = response.json()
+        print("Input:", json_data)
+        print("Expected Output: {'error': 'Error processing image'}")
+        print("Actual Output:", data)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('error', data)
+
+    def test_invalid_route(self):
+        print("\nTesting Invalid Route")
+        # Test an invalid route
+        response = requests.get('http://localhost:5000/invalid_route')
+        print("Input: N/A")
+        print("Expected Output: 404")
+        print("Actual Output:", response.status_code)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_method(self):
+        print("\nTesting Invalid HTTP Method")
+        # Test an invalid HTTP method for a route
+        response = requests.post('http://localhost:5000/')
+        print("Input: N/A")
+        print("Expected Output: 405")
+        print("Actual Output:", response.status_code)
+        self.assertEqual(response.status_code, 405)
+
+    def test_database_connection(self):
+        print("\nTesting Database Connection")
+        try:
+            # Test if the application can establish a connection to the database
+            # This test assumes the presence of a test database with test data
+            # Modify the query according to your database schema
+            response = requests.get('http://localhost:5000/get_disease_info?plant=Apple&disease=Black_rot')
+            try:
+                data = response.json()
+            except json.decoder.JSONDecodeError:
+                print("Raw Response Content:", response.content)
+                self.fail("Failed to decode JSON response from the server")
+
+            print("Input: Plant=Apple, Disease=Black_rot")
+            print("Actual Output:", data)
+
+            # Check if response contains an error message
+            if 'error' in data:
+                self.fail(f"Error during prediction: {data['error']}")
+
+            # Check if response contains expected keys
+            self.assertIn('disease_name', data)
+            self.assertIn('plant_name', data)
+            self.assertIn('symptoms', data)
+            self.assertIn('treatment', data)
+        except Exception as e:
+            self.fail(f"Error occurred during test: {str(e)}")
+
+
+if __name__ == '__main__':
+    unittest.main()
